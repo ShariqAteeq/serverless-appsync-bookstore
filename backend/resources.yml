@@ -134,3 +134,43 @@ cognitoCustomerIAMRole:
                 - !GetAtt BooksTable.Arn 
     RoleName: "book-store-customer-role"
 
+cognitoUnauthIAMRole:
+  Type: "AWS::IAM::Role"
+  Properties: 
+    RoleName: "bookstore-unauth-role"
+    Description: "IAM role for guest users"
+    AssumeRolePolicyDocument: 
+      Version: "2012-10-17"
+      Statement: 
+      - Effect: "Allow"
+        Principal: 
+          Federated:
+            - "cognito-identity.amazonaws.com"
+        Action: 
+          - "sts:AssumeRoleWithWebIdentity" 
+    Policies: 
+      - PolicyName: "bookstore-unauth-user-policy"
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "appsync:GraphQL"
+              Resource:
+                - "arn:aws:appsync:us-west-1:885121665536:apis/id4g42wxovhgbdpv5rvgggazf4/types/Query/fields/getBookById"
+
+cognitoIdentityPool:
+  Type: AWS::Cognito::IdentityPool
+  Properties: 
+    AllowUnauthenticatedIdentities: true
+    CognitoIdentityProviders: 
+      - ClientId: !Ref cognitoUserPoolClient
+        ProviderName: !GetAtt cognitoUserPool.ProviderName
+    IdentityPoolName: BookStoreIdentityPool
+
+cognitoIdentityPoolRoleAttachement:
+  Type: AWS::Cognito::IdentityPoolRoleAttachment
+  Properties: 
+    IdentityPoolId: !Ref cognitoIdentityPool
+    Roles:
+      unauthenticated: !GetAtt cognitoUnauthIAMRole.Arn
